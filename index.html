@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Flight Price Demo</title>
+</head>
+<body>
+  <h2>Flight Price Demo</h2>
+  <button onclick="search()">Search Flights</button>
+  <div id="result"></div>
+
+  <script>
+    async function search() {
+      const res = await fetch('/api/search?origin=TPE&destination=NRT&departureDate=2025-04-10');
+      const data = await res.json();
+      document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>
