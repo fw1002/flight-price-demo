@@ -15,18 +15,25 @@ export async function onRequest({ request, env }) {
     return new Response(JSON.stringify({ error: 'Failed to get access token', details: tokenData }), { status: 500 });
   }
 
-  // Step 2: Parse search params
+  // Step 2: Parse query parameters
   const url = new URL(request.url);
   const origin = url.searchParams.get('origin');
   const destination = url.searchParams.get('destination');
   const departureDate = url.searchParams.get('departureDate');
+  const returnDate = url.searchParams.get('returnDate');
+  const nonStop = url.searchParams.get('nonStop');
 
   if (!origin || !destination || !departureDate) {
-    return new Response(JSON.stringify({ error: 'Missing query parameters' }), { status: 400 });
+    return new Response(JSON.stringify({ error: 'Missing required parameters' }), { status: 400 });
   }
 
-  // Step 3: Call Amadeus Flight Offers API
-  const searchResponse = await fetch(`https://test.api.amadeus.com/v2/shopping/flight-offers?originLocationCode=${origin}&destinationLocationCode=${destination}&departureDate=${departureDate}&adults=1&max=20`, {
+  // Step 3: Construct API URL
+  let apiUrl = `https://test.api.amadeus.com/v2/shopping/flight-offers?originLocationCode=${origin}&destinationLocationCode=${destination}&departureDate=${departureDate}&adults=1&max=20`;
+  if (returnDate) apiUrl += `&returnDate=${returnDate}`;
+  if (nonStop === 'true') apiUrl += `&nonStop=true`;
+
+  // Step 4: Fetch flight offers
+  const searchResponse = await fetch(apiUrl, {
     headers: {
       Authorization: `Bearer ${accessToken}`
     }
@@ -34,6 +41,7 @@ export async function onRequest({ request, env }) {
 
   const searchData = await searchResponse.json();
 
+  // Step 5: Return the whole data including dictionaries
   return new Response(JSON.stringify(searchData), {
     headers: { 'Content-Type': 'application/json' }
   });
