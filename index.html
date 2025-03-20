@@ -1,36 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Flight Price Search</title>
+  <title>Flight Price Demo</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
-  <h1 class="text-3xl font-bold mb-6">Flight Price Search</h1>
+  <h1 class="text-3xl font-bold mb-6">機票比價搜尋</h1>
   <div class="bg-white p-6 rounded-2xl shadow-md w-full max-w-xl">
     <form id="search-form" class="space-y-4">
       <div>
-        <label class="block mb-1 font-medium">Origin (IATA Code)</label>
-        <input type="text" id="origin" class="w-full border rounded p-2" placeholder="e.g., TPE" required />
+        <label class="block mb-1 font-medium">出發地 (IATA代碼)</label>
+        <input type="text" id="origin" class="w-full border rounded p-2" placeholder="如 TPE" required />
       </div>
       <div>
-        <label class="block mb-1 font-medium">Destination (IATA Code)</label>
-        <input type="text" id="destination" class="w-full border rounded p-2" placeholder="e.g., NRT" required />
+        <label class="block mb-1 font-medium">目的地 (IATA代碼)</label>
+        <input type="text" id="destination" class="w-full border rounded p-2" placeholder="如 NRT" required />
       </div>
       <div>
-        <label class="block mb-1 font-medium">Departure Date</label>
+        <label class="block mb-1 font-medium">出發日期</label>
         <input type="date" id="departureDate" class="w-full border rounded p-2" required />
       </div>
       <div>
-        <label class="block mb-1 font-medium">Return Date (optional)</label>
+        <label class="block mb-1 font-medium">回程日期 (選填)</label>
         <input type="date" id="returnDate" class="w-full border rounded p-2" />
       </div>
       <div class="flex items-center space-x-2">
         <input type="checkbox" id="directOnly" />
-        <label for="directOnly" class="text-sm">Direct flights only</label>
+        <label for="directOnly" class="text-sm">僅顯示直飛航班</label>
       </div>
-      <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Search</button>
+      <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">搜尋</button>
     </form>
   </div>
 
@@ -42,7 +42,7 @@
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      resultsDiv.innerHTML = '<p class="text-gray-700">Loading...</p>';
+      resultsDiv.innerHTML = '<p class="text-gray-700">載入中...</p>';
 
       const origin = document.getElementById('origin').value;
       const destination = document.getElementById('destination').value;
@@ -55,38 +55,42 @@
       if (directOnly) query += `&nonStop=true`;
 
       try {
-        const res = await fetch(query);
-        const data = await res.json();
+        const [flightRes, rateRes] = await Promise.all([
+          fetch(query),
+          fetch('https://api.exchangerate.host/latest?base=EUR&symbols=TWD')
+        ]);
+        const flightData = await flightRes.json();
+        const rateData = await rateRes.json();
+        const rate = rateData.rates.TWD;
 
-        const carriers = data.dictionaries?.carriers || {};
+        const carriers = flightData.dictionaries?.carriers || {};
 
-        if (data.data && data.data.length > 0) {
+        if (flightData.data && flightData.data.length > 0) {
           resultsDiv.innerHTML = '';
-          data.data.forEach(flight => {
+          flightData.data.forEach(flight => {
             const itineraries = flight.itineraries;
             const validatingAirlines = flight.validatingAirlineCodes.map(code => carriers[code] || code).join(', ');
             const directFlight = itineraries.every(itinerary => itinerary.segments.every(s => s.numberOfStops === 0));
+            const priceTWD = (parseFloat(flight.price.total) * rate).toFixed(0);
 
             const card = document.createElement('div');
             card.className = 'bg-white p-6 rounded-xl shadow space-y-4';
 
-            // Flight price & source
             card.innerHTML = `
               <div class="flex justify-between items-center">
-                <div class="text-xl font-bold text-blue-600">${flight.price.total} ${flight.price.currency}</div>
-                <div class="text-sm text-gray-600">Source: ${flight.source}</div>
+                <div class="text-xl font-bold text-blue-600">${flight.price.total} ${flight.price.currency} (約 NT$${priceTWD})</div>
+                <div class="text-sm text-gray-600">來源: ${flight.source}</div>
               </div>
-              <div class="text-sm text-gray-600">Ticketing Airline: ${validatingAirlines}</div>
-              <div class="text-sm text-gray-600">${directFlight ? 'Direct Flight' : 'Includes Stopover(s)'}</div>
+              <div class="text-sm text-gray-600">出票航空公司: ${validatingAirlines}</div>
+              <div class="text-sm text-gray-600">${directFlight ? '直飛航班' : '含轉機'}</div>
             `;
 
-            // Itineraries (Outbound / Return)
             itineraries.forEach((itinerary, idx) => {
-              const direction = idx === 0 ? 'Outbound' : 'Return';
+              const direction = idx === 0 ? '去程' : '回程';
               const itineraryDiv = document.createElement('div');
               itineraryDiv.className = 'border-t pt-4';
 
-              let itineraryHTML = `<h3 class="font-semibold mb-2">${direction} Flight (${itinerary.duration.replace('PT', '').toLowerCase()})</h3>`;
+              let itineraryHTML = `<h3 class="font-semibold mb-2">${direction} (${itinerary.duration.replace('PT', '').toLowerCase()})</h3>`;
 
               itinerary.segments.forEach(segment => {
                 const airlineName = carriers[segment.carrierCode] || segment.carrierCode;
@@ -96,7 +100,7 @@
                     <div class="text-sm text-gray-700">
                       ${segment.departure.iataCode} (${segment.departure.at}) → ${segment.arrival.iataCode} (${segment.arrival.at})
                     </div>
-                    <div class="text-xs text-gray-500">Duration: ${segment.duration.replace('PT', '').toLowerCase()}, Stops: ${segment.numberOfStops}</div>
+                    <div class="text-xs text-gray-500">飛行時間: ${segment.duration.replace('PT', '').toLowerCase()}, 停留: ${segment.numberOfStops}</div>
                   </div>
                 `;
               });
@@ -108,11 +112,11 @@
             resultsDiv.appendChild(card);
           });
         } else {
-          resultsDiv.innerHTML = '<p class="text-gray-700">No flights found.</p>';
+          resultsDiv.innerHTML = '<p class="text-gray-700">未找到航班。</p>';
         }
       } catch (error) {
         console.error(error);
-        resultsDiv.innerHTML = '<p class="text-red-500">Error fetching flight data.</p>';
+        resultsDiv.innerHTML = '<p class="text-red-500">載入航班資料時發生錯誤。</p>';
       }
     });
   </script>
