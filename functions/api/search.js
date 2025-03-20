@@ -41,10 +41,10 @@ export async function onRequest({ request, env }) {
 
   const searchData = await searchResponse.json();
 
-  // Step 5: Fetch exchange rate
+  // Step 5: Fetch exchange rate (Using ExchangeRate-API)
   let exchangeRate = 1;
   try {
-    const rateResponse = await fetch('https://api.exchangerate.host/latest?base=EUR&symbols=TWD');
+    const rateResponse = await fetch('https://open.er-api.com/v6/latest/EUR');
     const rateData = await rateResponse.json();
     exchangeRate = rateData.rates.TWD || 1;
   } catch (err) {
