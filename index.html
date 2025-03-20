@@ -34,7 +34,7 @@
     </form>
   </div>
 
-  <div id="results" class="mt-8 w-full max-w-4xl space-y-4"></div>
+  <div id="results" class="mt-8 w-full max-w-5xl space-y-4"></div>
 
   <script>
     const form = document.getElementById('search-form');
@@ -58,6 +58,8 @@
         const res = await fetch(query);
         const data = await res.json();
 
+        const carriers = data.dictionaries?.carriers || {};
+
         if (data.data && data.data.length > 0) {
           resultsDiv.innerHTML = '';
           data.data.forEach(flight => {
@@ -66,16 +68,25 @@
             const firstSegment = segments[0];
             const lastSegment = segments[segments.length - 1];
 
+            const airlineCode = firstSegment.carrierCode;
+            const airlineName = carriers[airlineCode] || airlineCode;
+
+            const validatingAirlines = flight.validatingAirlineCodes.map(code => carriers[code] || code).join(', ');
+
+            const directFlight = segments.every(s => s.numberOfStops === 0);
+
             const card = document.createElement('div');
             card.className = 'bg-white p-4 rounded-xl shadow';
             card.innerHTML = `
               <div class="flex justify-between items-center mb-2">
-                <div class="font-bold">${firstSegment.carrierCode}${firstSegment.number}</div>
-                <div class="text-blue-500 text-lg font-semibold">${flight.price.total} ${flight.price.currency}</div>
+                <div class="font-bold text-lg">${airlineName} (${airlineCode}${firstSegment.number})</div>
+                <div class="text-blue-600 text-xl font-semibold">${flight.price.total} ${flight.price.currency}</div>
               </div>
               <div class="mb-1">${firstSegment.departure.iataCode} (${firstSegment.departure.at}) → ${lastSegment.arrival.iataCode} (${lastSegment.arrival.at})</div>
               <div class="text-sm text-gray-600">Total Duration: ${itineraries.map(it => it.duration.replace('PT', '').toLowerCase()).join(' + ')}</div>
-              <div class="text-xs text-gray-500">${segments.length > 1 ? segments.length - 1 + ' stop(s)' : 'Direct flight'}</div>
+              <div class="text-sm text-gray-500">${directFlight ? 'Direct flight' : (segments.length - 1) + ' stop(s)'}</div>
+              <div class="text-sm text-gray-500">Source: ${flight.source}</div>
+              <div class="text-sm text-gray-500">Ticketing Airline: ${validatingAirlines}</div>
             `;
             resultsDiv.appendChild(card);
           });
