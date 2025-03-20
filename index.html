@@ -34,15 +34,18 @@
     </form>
   </div>
 
+  <div id="loading" class="hidden mt-8 text-lg font-semibold text-blue-700 animate-pulse">載入中，請稍候...</div>
   <div id="results" class="mt-8 w-full max-w-6xl space-y-6"></div>
 
   <script>
     const form = document.getElementById('search-form');
     const resultsDiv = document.getElementById('results');
+    const loadingDiv = document.getElementById('loading');
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      resultsDiv.innerHTML = '<p class="text-gray-700">載入中...</p>';
+      resultsDiv.innerHTML = '';
+      loadingDiv.classList.remove('hidden');
 
       const origin = document.getElementById('origin').value;
       const destination = document.getElementById('destination').value;
@@ -55,13 +58,10 @@
       if (directOnly) query += `&nonStop=true`;
 
       try {
-        const [flightRes, rateRes] = await Promise.all([
-          fetch(query),
-          fetch('https://api.exchangerate.host/latest?base=EUR&symbols=TWD')
-        ]);
-        const flightData = await flightRes.json();
-        const rateData = await rateRes.json();
-        const rate = rateData.rates.TWD;
+        const res = await fetch(query);
+        const data = await res.json();
+        const flightData = data.flights;
+        const rate = data.exchangeRate;
 
         const carriers = flightData.dictionaries?.carriers || {};
 
@@ -117,6 +117,8 @@
       } catch (error) {
         console.error(error);
         resultsDiv.innerHTML = '<p class="text-red-500">載入航班資料時發生錯誤。</p>';
+      } finally {
+        loadingDiv.classList.add('hidden');
       }
     });
   </script>
