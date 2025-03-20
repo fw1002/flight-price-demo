@@ -22,6 +22,14 @@
         <label class="block mb-1 font-medium">Departure Date</label>
         <input type="date" id="departureDate" class="w-full border rounded p-2" required />
       </div>
+      <div>
+        <label class="block mb-1 font-medium">Return Date (optional)</label>
+        <input type="date" id="returnDate" class="w-full border rounded p-2" />
+      </div>
+      <div class="flex items-center space-x-2">
+        <input type="checkbox" id="directOnly" />
+        <label for="directOnly" class="text-sm">Direct flights only</label>
+      </div>
       <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Search</button>
     </form>
   </div>
@@ -39,25 +47,35 @@
       const origin = document.getElementById('origin').value;
       const destination = document.getElementById('destination').value;
       const departureDate = document.getElementById('departureDate').value;
+      const returnDate = document.getElementById('returnDate').value;
+      const directOnly = document.getElementById('directOnly').checked;
+
+      let query = `/api/search?origin=${origin}&destination=${destination}&departureDate=${departureDate}`;
+      if (returnDate) query += `&returnDate=${returnDate}`;
+      if (directOnly) query += `&nonStop=true`;
 
       try {
-        const res = await fetch(`/api/search?origin=${origin}&destination=${destination}&departureDate=${departureDate}`);
+        const res = await fetch(query);
         const data = await res.json();
 
         if (data.data && data.data.length > 0) {
           resultsDiv.innerHTML = '';
           data.data.forEach(flight => {
-            const itinerary = flight.itineraries[0];
-            const segment = itinerary.segments[0];
+            const itineraries = flight.itineraries;
+            const segments = itineraries.flatMap(itinerary => itinerary.segments);
+            const firstSegment = segments[0];
+            const lastSegment = segments[segments.length - 1];
+
             const card = document.createElement('div');
             card.className = 'bg-white p-4 rounded-xl shadow';
             card.innerHTML = `
               <div class="flex justify-between items-center mb-2">
-                <div class="font-bold">${segment.carrierCode}${segment.number}</div>
+                <div class="font-bold">${firstSegment.carrierCode}${firstSegment.number}</div>
                 <div class="text-blue-500 text-lg font-semibold">${flight.price.total} ${flight.price.currency}</div>
               </div>
-              <div class="mb-1">${segment.departure.iataCode} (${segment.departure.at}) → ${segment.arrival.iataCode} (${segment.arrival.at})</div>
-              <div class="text-sm text-gray-600">Duration: ${itinerary.duration.replace('PT','').toLowerCase()}</div>
+              <div class="mb-1">${firstSegment.departure.iataCode} (${firstSegment.departure.at}) → ${lastSegment.arrival.iataCode} (${lastSegment.arrival.at})</div>
+              <div class="text-sm text-gray-600">Total Duration: ${itineraries.map(it => it.duration.replace('PT', '').toLowerCase()).join(' + ')}</div>
+              <div class="text-xs text-gray-500">${segments.length > 1 ? segments.length - 1 + ' stop(s)' : 'Direct flight'}</div>
             `;
             resultsDiv.appendChild(card);
           });
