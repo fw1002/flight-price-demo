@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Flight Price Demo</title>
+  <title>Flight Price Search</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
@@ -34,7 +34,7 @@
     </form>
   </div>
 
-  <div id="results" class="mt-8 w-full max-w-5xl space-y-4"></div>
+  <div id="results" class="mt-8 w-full max-w-6xl space-y-6"></div>
 
   <script>
     const form = document.getElementById('search-form');
@@ -64,30 +64,47 @@
           resultsDiv.innerHTML = '';
           data.data.forEach(flight => {
             const itineraries = flight.itineraries;
-            const segments = itineraries.flatMap(itinerary => itinerary.segments);
-            const firstSegment = segments[0];
-            const lastSegment = segments[segments.length - 1];
-
-            const airlineCode = firstSegment.carrierCode;
-            const airlineName = carriers[airlineCode] || airlineCode;
-
             const validatingAirlines = flight.validatingAirlineCodes.map(code => carriers[code] || code).join(', ');
-
-            const directFlight = segments.every(s => s.numberOfStops === 0);
+            const directFlight = itineraries.every(itinerary => itinerary.segments.every(s => s.numberOfStops === 0));
 
             const card = document.createElement('div');
-            card.className = 'bg-white p-4 rounded-xl shadow';
+            card.className = 'bg-white p-6 rounded-xl shadow space-y-4';
+
+            // Flight price & source
             card.innerHTML = `
-              <div class="flex justify-between items-center mb-2">
-                <div class="font-bold text-lg">${airlineName} (${airlineCode}${firstSegment.number})</div>
-                <div class="text-blue-600 text-xl font-semibold">${flight.price.total} ${flight.price.currency}</div>
+              <div class="flex justify-between items-center">
+                <div class="text-xl font-bold text-blue-600">${flight.price.total} ${flight.price.currency}</div>
+                <div class="text-sm text-gray-600">Source: ${flight.source}</div>
               </div>
-              <div class="mb-1">${firstSegment.departure.iataCode} (${firstSegment.departure.at}) → ${lastSegment.arrival.iataCode} (${lastSegment.arrival.at})</div>
-              <div class="text-sm text-gray-600">Total Duration: ${itineraries.map(it => it.duration.replace('PT', '').toLowerCase()).join(' + ')}</div>
-              <div class="text-sm text-gray-500">${directFlight ? 'Direct flight' : (segments.length - 1) + ' stop(s)'}</div>
-              <div class="text-sm text-gray-500">Source: ${flight.source}</div>
-              <div class="text-sm text-gray-500">Ticketing Airline: ${validatingAirlines}</div>
+              <div class="text-sm text-gray-600">Ticketing Airline: ${validatingAirlines}</div>
+              <div class="text-sm text-gray-600">${directFlight ? 'Direct Flight' : 'Includes Stopover(s)'}</div>
             `;
+
+            // Itineraries (Outbound / Return)
+            itineraries.forEach((itinerary, idx) => {
+              const direction = idx === 0 ? 'Outbound' : 'Return';
+              const itineraryDiv = document.createElement('div');
+              itineraryDiv.className = 'border-t pt-4';
+
+              let itineraryHTML = `<h3 class="font-semibold mb-2">${direction} Flight (${itinerary.duration.replace('PT', '').toLowerCase()})</h3>`;
+
+              itinerary.segments.forEach(segment => {
+                const airlineName = carriers[segment.carrierCode] || segment.carrierCode;
+                itineraryHTML += `
+                  <div class="mb-2">
+                    <div class="font-medium">${airlineName} (${segment.carrierCode}${segment.number})</div>
+                    <div class="text-sm text-gray-700">
+                      ${segment.departure.iataCode} (${segment.departure.at}) → ${segment.arrival.iataCode} (${segment.arrival.at})
+                    </div>
+                    <div class="text-xs text-gray-500">Duration: ${segment.duration.replace('PT', '').toLowerCase()}, Stops: ${segment.numberOfStops}</div>
+                  </div>
+                `;
+              });
+
+              itineraryDiv.innerHTML = itineraryHTML;
+              card.appendChild(itineraryDiv);
+            });
+
             resultsDiv.appendChild(card);
           });
         } else {
