@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IATA 代碼查詢</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
+  <h1 class="text-xl font-bold mb-4">IATA 代碼查詢工具</h1>
+
+  <div class="bg-white p-4 rounded-xl shadow-md w-full max-w-md">
+    <input type="text" id="cityInput" class="w-full border rounded p-2 mb-3 text-sm" placeholder="輸入城市或機場名稱" />
+    <button id="searchBtn" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 text-sm">查詢</button>
+  </div>
+
+  <div id="result" class="mt-6 w-full max-w-md bg-white p-4 rounded-xl shadow-md text-sm"></div>
+
+  <script>
+    const searchBtn = document.getElementById('searchBtn');
+    const resultDiv = document.getElementById('result');
+
+    searchBtn.addEventListener('click', async () => {
+      const keyword = document.getElementById('cityInput').value.trim();
+      resultDiv.innerHTML = '';
+      if (!keyword) return;
+
+      resultDiv.innerHTML = '<div class="text-blue-600">查詢中...</div>';
+
+      try {
+        const res = await fetch(`/api/location?keyword=${encodeURIComponent(keyword)}`);
+        const data = await res.json();
+
+        if (data.results.length > 0) {
+          resultDiv.innerHTML = '<div class="font-semibold mb-2">查詢結果：</div>';
+          data.re
