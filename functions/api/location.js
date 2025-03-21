@@ -23,8 +23,11 @@ export async function onRequest({ request, env }) {
     return new Response(JSON.stringify({ error: 'Missing city keyword' }), { status: 400 });
   }
 
+  // Standardize keyword: capitalize first letter, lower others
+  const cleanKeyword = keyword.charAt(0).toUpperCase() + keyword.slice(1).toLowerCase();
+
   // Step 3: Call Amadeus Location API
-  const locationResponse = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations?keyword=${keyword}&subType=CITY,AIRPORT`, {
+  const locationResponse = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations?keyword=${cleanKeyword}&subType=CITY,AIRPORT`, {
     headers: {
       Authorization: `Bearer ${accessToken}`
     }
