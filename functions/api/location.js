@@ -26,8 +26,8 @@ export async function onRequest({ request, env }) {
   // Standardize keyword: capitalize first letter, lower others
   const cleanKeyword = keyword.charAt(0).toUpperCase() + keyword.slice(1).toLowerCase();
 
-  // Step 3: Call Amadeus Location API
-  const locationResponse = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations?keyword=${cleanKeyword}&subType=CITY,AIRPORT`, {
+  // Step 3: Call Amadeus Location API with view=FULL
+  const locationResponse = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations?keyword=${cleanKeyword}&subType=CITY,AIRPORT&view=FULL`, {
     headers: {
       Authorization: `Bearer ${accessToken}`
     }
