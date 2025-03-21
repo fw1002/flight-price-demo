@@ -11,12 +11,12 @@
   <div class="bg-white p-4 rounded-xl shadow-md w-full max-w-md">
     <form id="search-form" class="space-y-3">
       <div>
-        <label class="block mb-1 text-sm font-medium">出發地 (城市或IATA代碼)</label>
-        <input type="text" id="origin" class="w-full border rounded p-1 text-sm" placeholder="如 Taipei 或 TPE" required />
+        <label class="block mb-1 text-sm font-medium">出發地 (IATA代碼)</label>
+        <input type="text" id="origin" class="w-full border rounded p-1 text-sm" placeholder="如 TPE" required />
       </div>
       <div>
-        <label class="block mb-1 text-sm font-medium">目的地 (城市或IATA代碼)</label>
-        <input type="text" id="destination" class="w-full border rounded p-1 text-sm" placeholder="如 Tokyo 或 NRT" required />
+        <label class="block mb-1 text-sm font-medium">目的地 (IATA代碼)</label>
+        <input type="text" id="destination" class="w-full border rounded p-1 text-sm" placeholder="如 NRT" required />
       </div>
       <div>
         <label class="block mb-1 text-sm font-medium">出發日期</label>
@@ -42,36 +42,16 @@
     const resultsDiv = document.getElementById('results');
     const loadingDiv = document.getElementById('loading');
 
-    async function resolveIATACode(keyword) {
-      keyword = keyword.trim();
-      if (keyword.length === 3) {
-        return keyword.toUpperCase(); // Already IATA code
-      }
-
-      const res = await fetch(`/api/location?keyword=${encodeURIComponent(keyword)}`);
-      const data = await res.json();
-      if (data.results && data.results.length > 0) {
-        const city = data.results.find(item => item.subType === 'CITY');
-        if (city) return city.iataCode;
-        return data.results[0].iataCode;
-      }
-      return keyword.toUpperCase(); // fallback
-    }
-
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       resultsDiv.innerHTML = '';
       loadingDiv.classList.remove('hidden');
 
-      let originInput = document.getElementById('origin').value.trim();
-      let destinationInput = document.getElementById('destination').value.trim();
+      const origin = document.getElementById('origin').value;
+      const destination = document.getElementById('destination').value;
       const departureDate = document.getElementById('departureDate').value;
       const returnDate = document.getElementById('returnDate').value;
       const directOnly = document.getElementById('directOnly').checked;
-
-      // Resolve IATA Codes
-      const origin = await resolveIATACode(originInput);
-      const destination = await resolveIATACode(destinationInput);
 
       let query = `/api/search?origin=${origin}&destination=${destination}&departureDate=${departureDate}`;
       if (returnDate) query += `&returnDate=${returnDate}`;
