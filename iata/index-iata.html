@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IATA 代碼查詢</title>
+  <title>IATA 測試查詢</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
-  <h1 class="text-xl font-bold mb-4">IATA 代碼查詢工具</h1>
+  <h1 class="text-xl font-bold mb-4">IATA 測試查詢</h1>
 
   <div class="bg-white p-4 rounded-xl shadow-md w-full max-w-md">
     <input type="text" id="cityInput" class="w-full border rounded p-2 mb-3 text-sm" placeholder="輸入城市或機場名稱" />
@@ -31,6 +31,28 @@
         const res = await fetch(`/api/location?keyword=${encodeURIComponent(keyword)}`);
         const data = await res.json();
 
-        if (data.results.length > 0) {
+        console.log(data); // <-- 方便檢查
+
+        if (data.results && data.results.length > 0) {
           resultDiv.innerHTML = '<div class="font-semibold mb-2">查詢結果：</div>';
-          data.re
+          data.results.forEach(item => {
+            resultDiv.innerHTML += `
+              <div class="mb-2">
+                <div><strong>IATA:</strong> ${item.iataCode}</div>
+                <div><strong>名稱:</strong> ${item.name}</div>
+                <div><strong>類型:</strong> ${item.subType}</div>
+              </div>
+              <hr />
+            `;
+          });
+        } else {
+          resultDiv.innerHTML = '<div class="text-red-500">未找到符合的結果。</div>';
+        }
+      } catch (err) {
+        console.error(err); // <-- 方便檢查錯誤
+        resultDiv.innerHTML = '<div class="text-red-500">查詢過程發生錯誤。</div>';
+      }
+    });
+  </script>
+</body>
+</html>
