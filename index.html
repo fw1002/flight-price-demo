@@ -45,8 +45,8 @@
     async function resolveIATACode(keyword) {
       const res = await fetch(`/api/location?keyword=${encodeURIComponent(keyword)}`);
       const data = await res.json();
-      if (data.data && data.data.length > 0) {
-        return data.data[0].iataCode;
+      if (data.results && data.results.length > 0) {
+        return data.results[0].iataCode;  // 使用 IATA code
       }
       return keyword.toUpperCase(); // fallback
     }
@@ -67,73 +67,4 @@
       const destination = await resolveIATACode(destinationInput);
 
       let query = `/api/search?origin=${origin}&destination=${destination}&departureDate=${departureDate}`;
-      if (returnDate) query += `&returnDate=${returnDate}`;
-      if (directOnly) query += `&nonStop=true`;
-
-      try {
-        const res = await fetch(query);
-        const data = await res.json();
-        const flightData = data.flights;
-        const rate = data.exchangeRate;
-
-        const carriers = flightData.dictionaries?.carriers || {};
-
-        if (flightData.data && flightData.data.length > 0) {
-          resultsDiv.innerHTML = '';
-          flightData.data.forEach(flight => {
-            const itineraries = flight.itineraries;
-            const validatingAirlines = flight.validatingAirlineCodes.map(code => carriers[code] || code).join(', ');
-            const directFlight = itineraries.every(itinerary => itinerary.segments.every(s => s.numberOfStops === 0));
-            const priceTWD = (parseFloat(flight.price.total) * rate).toFixed(0);
-
-            const card = document.createElement('div');
-            card.className = 'bg-white p-4 rounded-xl shadow space-y-3';
-
-            card.innerHTML = `
-              <div class="flex justify-between items-center">
-                <div class="text-lg font-bold text-blue-600">${flight.price.total} ${flight.price.currency} (約 NT$${priceTWD})</div>
-                <div class="text-xs text-gray-600">來源: ${flight.source}</div>
-              </div>
-              <div class="text-xs text-gray-600">出票航空公司: ${validatingAirlines}</div>
-              <div class="text-xs text-gray-600">${directFlight ? '直飛航班' : '含轉機'}</div>
-            `;
-
-            itineraries.forEach((itinerary, idx) => {
-              const direction = idx === 0 ? '去程' : '回程';
-              const itineraryDiv = document.createElement('div');
-              itineraryDiv.className = 'border-t pt-2';
-
-              let itineraryHTML = `<h3 class="font-medium mb-1">${direction} (${itinerary.duration.replace('PT', '').toLowerCase()})</h3>`;
-
-              itinerary.segments.forEach(segment => {
-                const airlineName = carriers[segment.carrierCode] || segment.carrierCode;
-                itineraryHTML += `
-                  <div class="mb-1">
-                    <div class="font-medium text-sm">${airlineName} (${segment.carrierCode}${segment.number})</div>
-                    <div class="text-xs text-gray-700">
-                      ${segment.departure.iataCode} (${segment.departure.at}) → ${segment.arrival.iataCode} (${segment.arrival.at})
-                    </div>
-                    <div class="text-xs text-gray-500">飛行時間: ${segment.duration.replace('PT', '').toLowerCase()}, 停留: ${segment.numberOfStops}</div>
-                  </div>
-                `;
-              });
-
-              itineraryDiv.innerHTML = itineraryHTML;
-              card.appendChild(itineraryDiv);
-            });
-
-            resultsDiv.appendChild(card);
-          });
-        } else {
-          resultsDiv.innerHTML = '<p class="text-gray-700 text-sm">未找到航班。</p>';
-        }
-      } catch (error) {
-        console.error(error);
-        resultsDiv.innerHTML = '<p class="text-red-500">載入航班資料時發生錯誤。</p>';
-      } finally {
-        loadingDiv.classList.add('hidden');
-      }
-    });
-  </script>
-</body>
-</html>
+      if (returnDate) query += `&returnDate
