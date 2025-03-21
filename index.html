@@ -90,7 +90,7 @@
           flightData.data.forEach(flight => {
             const itineraries = flight.itineraries;
             const validatingAirlines = flight.validatingAirlineCodes.map(code => carriers[code] || code).join(', ');
-            const directFlight = itineraries.every(itinerary => itinerary.segments.every(s => s.numberOfStops === 0));
+            const directFlight = itineraries.every(itinerary => itinerary.segments.length === 1);
             const priceTWD = (parseFloat(flight.price.total) * rate).toFixed(0);
 
             const card = document.createElement('div');
